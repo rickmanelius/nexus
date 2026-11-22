@@ -1,0 +1,152 @@
+                               FICTITIOUS TEST DATA - NOT A REAL PATIENT
+
+Example Family Clinic - New Patient Intake Form
+PAGE 1 - PATIENT DEMOGRAPHICS
+
+Patient Name: Eleanor Marguerite Whitfield           Preferred Name: Ellie
+Date of Birth: 03/14/1979      Age: 47     Sex: Female      Marital Status: Married
+SSN: 987-65-4320        Medical Record No. (MRN): MRN-00482913
+Driver's License: IL D400-7821-9935 (Illinois, exp 2029-03-14)
+Passport No.: X12345678 (USA)
+Home Address: 1427 Maplewood Lane, Apt 3B
+City/State/ZIP: Evanston, IL 60201
+Home Phone: (312) 555-0142 Mobile: 312-555-0187 Work: +1 312 555 0119 x204
+Email: ellie.whitfield@example.com Alt Email: e.m.whitfield79@example.org
+Employer: Lakeshore Analytics Group, LLC Occupation: Senior Data Analyst
+Employer Address: 200 W. Example Plaza, Suite 1800, Chicago, IL 60606
+Patient Portal: https://portal.example-clinic.test/patients/ewhitfield79
+Last portal login IP: 203.0.113.47 (IPv6: 2001:db8::4a2f:1)
+Vehicle (for parking permit): 2019 Subaru Outback, IL plate BQ 48213
+
+Emergency Contacts
+1. Thomas J. Whitfield (Spouse) Phone: 773-555-0163
+2. Grace Okonkwo-Bell (Sister) Phone: (847) 555-0128 Email: grace.ob@example.net
+Preferred language: English        Race/Ethnicity: declined
+
+
+
+
+Page 1 of 5 | FICTITIOUS - for PII redaction testing only
+                               FICTITIOUS TEST DATA - NOT A REAL PATIENT
+
+Example Family Clinic - New Patient Intake Form
+PAGE 2 - INSURANCE & BILLING
+
+Primary Insurance
+Carrier: Example Mutual Health (fictitious) Plan: PPO Gold
+Member ID: XMH884213907 Group No.: GRP-0057731
+Subscriber: Eleanor M. Whitfield Subscriber DOB: 14-Mar-1979
+Medicare Beneficiary ID (MBI): 1EG4-TE5-MK72
+
+Secondary Insurance
+Carrier: Sample Dental & Vision Co. Member ID: SDV-55102-88 Subscriber: Thomas J. Whitfield
+
+Billing - Bank Account (ACH autopay)
+Bank: First Example Bank Routing No.: 011000015 Account No.: 000123456789
+Account holder: Eleanor Whitfield
+
+Billing - Credit Card on File
+Card: Visa Number: 4111 1111 1111 1111 Exp: 09/28 CVV: 737
+Backup card: Mastercard 5555-5555-5555-4444 exp 12/2027 CVC 321
+Billing address: same as home (1427 Maplewood Lane, Apt 3B, Evanston, IL 60201)
+Responsible party: Self      Guarantor phone: 312-555-0187
+Note from billing: Patient asked that statements be emailed to ellie.whitfield@example.com rather than
+mailed. A prior payment was made on June 3rd, 2026 from account ending 6789.
+
+
+
+
+Page 2 of 5 | FICTITIOUS - for PII redaction testing only
+                               FICTITIOUS TEST DATA - NOT A REAL PATIENT
+
+Example Family Clinic - New Patient Intake Form
+PAGE 3 - MEDICAL HISTORY & MEDICATIONS
+
+Primary Care Physician: Dr. Rajesh Patel, MD NPI: 1234567893
+Referring Physician: Dr. Hope Stone, DO NPI: 1093817465
+Preferred Pharmacy: Northside Example Pharmacy #0412
+Pharmacy Address: 88 Davis Street, Evanston, IL 60201 Phone: 847-555-0177
+
+Diagnoses / Problem List
+- Type 2 diabetes mellitus without complications (E11.9)
+- Essential (primary) hypertension (I10)
+- Major depressive disorder, single episode, moderate (F32.1)
+- Migraine without aura, not intractable (G43.009)
+- Hypothyroidism, unspecified (E03.9)
+
+Current Medications
+- Metformin 500 mg PO twice daily
+- Lisinopril 10 mg PO daily
+- Sertraline 50 mg PO daily
+- Levothyroxine 75 mcg PO daily before breakfast
+- Sumatriptan 50 mg PRN migraine
+
+Allergies
+- Penicillin (hives) - Sulfa drugs (rash) - Latex (contact dermatitis)
+
+Past Surgical History
+- Appendectomy, August 2001, Evanston Hospital (fictitious) - Cholecystectomy 2/9/2015
+Height: 5'6" Weight: 172 lb Blood type: O+
+
+
+
+
+Page 3 of 5 | FICTITIOUS - for PII redaction testing only
+                               FICTITIOUS TEST DATA - NOT A REAL PATIENT
+
+Example Family Clinic - New Patient Intake Form
+PAGE 4 - CHIEF COMPLAINT, SOCIAL & FAMILY HISTORY
+
+Chief Complaint (patient's own words)
+I'm Ellie Whitfield and I've had headaches for about three weeks, mostly since we got back from Los
+Angeles on the 12th of September. My husband Tom drove us home and said I should call Dr. Patel, so here
+I am. The pain is worse in the morning, and Hope at the front desk told me to write everything down.
+
+Social History
+Patient (DOB 1979-03-14) lives with her husband, Thomas Whitfield, and their two children, Joy Whitfield
+(age 12) and Mason Whitfield (age 9), at their home in Evanston. She works remotely three days a week for
+Lakeshore Analytics and commutes to Chicago otherwise. Before moving, the family lived at 5520 Orange
+Grove Avenue, Los Angeles, CA 90028 until Jan. 2018. She drinks wine socially (2-3 glasses/week), never
+smoked, and walks with her neighbor Faith most mornings. Her Social Security number was given verbally as
+nine eight seven, sixty-five, four three two zero.
+For follow-up, she can be reached on her cell at
+312-555-
+0187 or her husband's work line. Her mother, June Okonkwo, also helps with school pickup.
+
+Family History
+Spouse: Thomas James Whitfield, DOB 07/22/1977, SSN 987-65-4321
+Child 1: Joy Whitfield, DOB 2014-05-30 Child 2: Mason Whitfield, DOB May 1, 2017
+Mother: June Okonkwo, 72, hypertension, osteoarthritis Father: Samuel Okonkwo (deceased 11.04.2019, MI)
+Family conditions: diabetes (mother), coronary artery disease (father), breast cancer (maternal aunt)
+
+
+
+
+Page 4 of 5 | FICTITIOUS - for PII redaction testing only
+                               FICTITIOUS TEST DATA - NOT A REAL PATIENT
+
+Example Family Clinic - New Patient Intake Form
+PAGE 5 - CONSENTS, HIPAA AUTHORIZATION & SIGNATURES
+
+Consent to Treat
+I, Eleanor M. Whitfield, consent to examination and treatment by the providers of Example Family Clinic.
+I understand this consent remains in effect until revoked in writing.
+
+HIPAA Authorization for Release of Information
+I authorize Example Family Clinic to disclose my protected health information, including records related
+to diagnoses F32.1 and E11.9, to my spouse Thomas J. Whitfield (phone 773-555-0163) and to Dr. Hope
+Stone, DO (NPI 1093817465). Records may be sent by fax to (847) 555-0199 or by email to records@example-
+clinic.test. This authorization expires on 12/31/2027.
+
+Financial Responsibility
+I authorize charges to the card ending in 1111 and ACH debits from routing 011000015.
+Patient Signature: ____/s/ Eleanor M. Whitfield____ Date: 10/30/2026
+Witness Signature: ____/s/ Hope Stone____ Date: Oct 30, 2026
+Spouse/Authorized Rep.: ____/s/ Thomas J. Whitfield____ Relationship: Spouse Date: 30-Oct-2026
+Patient MRN: MRN-00482913 Form ID: INTAKE-2026-10-30-0047
+
+
+
+
+Page 5 of 5 | FICTITIOUS - for PII redaction testing only
+

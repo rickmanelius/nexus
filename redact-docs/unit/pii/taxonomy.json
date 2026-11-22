@@ -1,0 +1,356 @@
+{
+  "version": "0.5.0",
+  "about": "Machine source of the PII definition. docs/pii-definition.md is the prose version, and the two must list the same class IDs.",
+  "tiers": {
+    "A": "Direct identifiers. Always redacted; no profile can turn them off.",
+    "B": "Identifiers that become identifying in context. Redacted by strict; a profile may turn one off.",
+    "C": "Quasi-identifier combinations. Documented below, no detector, not promised.",
+    "H": "Health content. Kept by strict so the document stays usable; a profile may turn it on."
+  },
+  "classifier": {
+    "threshold": 0.3,
+    "window_words": 192,
+    "overlap_words": 48
+  },
+  "form_words_about": "Words that form labels and headings are made of. A classifier or LLM span made only of these (plus common words and titles), with no digit or @, is a label, not a value, and is kept (labels stay, values go). Extend it for a client's forms.",
+  "form_words": [
+    "account", "ach", "address", "age", "allergies", "alt", "authorization", "authorized", "autopay", "backup",
+    "bank", "beneficiary", "billing", "birth", "blood", "card", "care", "carrier", "cell", "chart", "chief", "child",
+    "city", "complaint", "consent", "contact", "contacts", "credit", "current", "date", "debit", "dependent",
+    "diagnoses", "diagnosis", "dob", "driver", "driver's", "email", "e-mail", "emergency", "employer", "ending",
+    "ethnicity", "exp", "expiration", "family", "father", "fax", "file", "financial", "form", "gender", "group",
+    "guarantor", "guardian", "height", "hipaa", "history", "holder", "home", "id", "information", "insurance",
+    "insured", "ip", "ipv4", "ipv6", "language", "last", "license", "list", "login", "marital", "medical", "medicare",
+    "medicaid", "medications", "member", "mobile", "mother", "mrn", "name", "next", "kin", "no", "note", "npi",
+    "number", "occupation", "page", "parking", "party", "passport", "past", "patient", "payment", "permit",
+    "pharmacy", "phone", "physician", "plan", "plate", "policy", "portal", "preferred", "primary", "prior",
+    "problem", "race", "record", "referring", "relationship", "release", "rep", "responsibility", "responsible",
+    "routing", "secondary", "self", "sex", "signature", "social", "spouse", "ssn", "state", "status", "subscriber",
+    "surgical", "telephone", "treat", "type", "vehicle", "weight", "witness", "work", "zip", "cvv", "cvc", "visa",
+    "mastercard", "amex", "discover", "security", "sister", "brother", "husband", "wife", "son", "daughter",
+    "partner", "parent", "provider", "clinic", "hospital", "practice", "office", "fictitious", "test", "data",
+    "redaction", "testing", "only", "new", "intake", "demographics", "release", "of"
+  ],
+  "classes": [
+    {
+      "id": "PERSON", "tag": "PERSON", "tier": "A", "name": "Person name",
+      "definition": "Any name of a person: full, first, middle, last, nickname or preferred name, initials with a surname, and names in signatures. Patients, relatives, contacts, staff and clinicians alike.",
+      "examples": ["Eleanor Marguerite Whitfield", "Ellie", "Dr. Patel", "/s/ Hope Stone"],
+      "counter_examples": ["the word hope in 'we hope you feel better'", "a drug or product named after a person"],
+      "layers": ["rules", "classifier", "llm"], "match": "name", "components": "name_tokens", "propagate": true,
+      "labels": ["name", "patient", "subscriber", "account holder", "spouse", "child \\d*", "mother", "father", "contact", "signature", "witness"],
+      "classifier_labels": ["name", "first name", "last name", "name medical professional"]
+    },
+    {
+      "id": "SSN", "tag": "SSN", "tier": "A", "name": "Social Security number",
+      "definition": "A US Social Security number in any format, including partial ones (last four digits) and ones written out in words.",
+      "examples": ["987-65-4320", "nine eight seven, sixty-five, four three two zero", "SSN ending 4320"],
+      "counter_examples": ["a nine-digit order or part number with no SSN label"],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["ssn", "social security(?: number| no\\.?)?", "ss#", "soc\\.? sec\\.?"],
+      "classifier_labels": ["ssn"]
+    },
+    {
+      "id": "ITIN", "tag": "ITIN", "tier": "A", "name": "Taxpayer identification number",
+      "definition": "An ITIN, EIN or other taxpayer number issued to a person.",
+      "examples": ["912-70-1234"],
+      "counter_examples": ["a company EIN printed in a letterhead"],
+      "layers": ["rules"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["itin", "tin", "taxpayer id(?:entification)?(?: number| no\\.?)?", "tax id"],
+      "classifier_labels": []
+    },
+    {
+      "id": "DATE", "tag": "DATE", "tier": "A", "name": "Date linked to a person",
+      "definition": "Every date more specific than a year in a document about a person: birth, death, visit, admission, payment, signature and expiry dates. A year on its own is kept (HIPAA Safe Harbor allows it).",
+      "examples": ["03/14/1979", "14-Mar-1979", "June 3rd, 2026", "the 12th of September", "Jan. 2018"],
+      "counter_examples": ["2019 on its own", "a form revision year"],
+      "layers": ["rules", "classifier"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["date", "dob", "born", "deceased", "expires?", "exp\\.?"],
+      "classifier_labels": ["dob", "date"]
+    },
+    {
+      "id": "PHONE", "tag": "PHONE", "tier": "A", "name": "Phone number",
+      "definition": "Any telephone number, with or without country code or extension.",
+      "examples": ["(312) 555-0142", "+1 312 555 0119 x204"],
+      "counter_examples": ["a ten-digit NPI or account number with its own label"],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["phone", "tel\\.?", "telephone", "mobile", "cell", "home", "work", "line"],
+      "classifier_labels": ["phone number"]
+    },
+    {
+      "id": "FAX", "tag": "FAX", "tier": "A", "name": "Fax number",
+      "definition": "A fax number.",
+      "examples": ["(847) 555-0199"],
+      "counter_examples": [],
+      "layers": ["rules"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["fax"],
+      "classifier_labels": []
+    },
+    {
+      "id": "EMAIL", "tag": "EMAIL", "tier": "A", "name": "Email address",
+      "definition": "Any email address, including shared or role mailboxes that appear in the document.",
+      "examples": ["ellie.whitfield@example.com", "records@example-clinic.test"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "casefold", "components": "whole", "propagate": true,
+      "labels": ["e-?mail"],
+      "classifier_labels": ["email address"]
+    },
+    {
+      "id": "STREET_ADDRESS", "tag": "ADDRESS", "tier": "A", "name": "Street address",
+      "definition": "A street address: house number, street, unit, PO box. Current, prior and billing addresses alike.",
+      "examples": ["1427 Maplewood Lane, Apt 3B", "5520 Orange Grove Avenue"],
+      "counter_examples": ["a street name used as a direction with no number, such as 'take Davis Street north'"],
+      "layers": ["classifier", "llm"], "match": "text", "components": "address", "propagate": true,
+      "labels": ["address", "addr\\.?", "street", "lived at"],
+      "classifier_labels": ["location address", "location street"]
+    },
+    {
+      "id": "MRN", "tag": "MRN", "tier": "A", "name": "Medical record number",
+      "definition": "A medical record, chart or patient account number at a care provider.",
+      "examples": ["MRN-00482913"],
+      "counter_examples": [],
+      "layers": ["rules"], "match": "text", "components": "digits", "propagate": true,
+      "labels": ["mrn", "medical record(?: no\\.?| number| #)?(?: \\(mrn\\))?", "chart(?: no\\.?| number| #)"],
+      "classifier_labels": []
+    },
+    {
+      "id": "HEALTH_PLAN_ID", "tag": "MEMBER_ID", "tier": "A", "name": "Health plan or member ID",
+      "definition": "A health plan beneficiary, member, subscriber, policy or group number.",
+      "examples": ["XMH884213907", "GRP-0057731", "SDV-55102-88"],
+      "counter_examples": ["a plan name such as 'PPO Gold'"],
+      "layers": ["rules", "classifier"], "match": "text", "components": "digits", "propagate": true,
+      "labels": ["member(?: id| no\\.?| number| #)", "subscriber(?: id| no\\.?| number)", "group(?: no\\.?| number| #)", "policy(?: id| no\\.?| number| #)?", "plan id", "insurance id", "beneficiary(?: id| number)"],
+      "classifier_labels": []
+    },
+    {
+      "id": "MEDICARE_ID", "tag": "MBI", "tier": "A", "name": "Medicare beneficiary identifier",
+      "definition": "A Medicare Beneficiary Identifier (11 characters in the CMS format) or an older Medicare claim number.",
+      "examples": ["1EG4-TE5-MK72"],
+      "counter_examples": [],
+      "layers": ["rules"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["mbi", "medicare(?: beneficiary)?(?: id| identifier| number| no\\.?)?(?: \\(mbi\\))?"],
+      "classifier_labels": []
+    },
+    {
+      "id": "ACCOUNT_NUMBER", "tag": "ACCOUNT", "tier": "A", "name": "Account number",
+      "definition": "A bank, billing or other financial account number, including the last four digits on their own.",
+      "examples": ["000123456789", "account ending 6789"],
+      "counter_examples": ["a dollar amount"],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["account(?: no\\.?| number| #)?", "acct\\.?(?: no\\.?| #)?", "account ending(?: in)?"],
+      "classifier_labels": ["account number", "bank account"]
+    },
+    {
+      "id": "CARD_NUMBER", "tag": "CARD", "tier": "A", "name": "Payment card number",
+      "definition": "A credit or debit card number, whether or not its checksum is valid, including the last four digits on their own.",
+      "examples": ["4111 1111 1111 1111", "card ending in 1111"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["card(?: number| no\\.?| #)?", "number", "card ending(?: in)?", "visa", "mastercard", "amex", "american express", "discover"],
+      "classifier_labels": ["credit card"]
+    },
+    {
+      "id": "CARD_EXPIRY", "tag": "CARD_EXP", "tier": "A", "name": "Card expiry date",
+      "definition": "The expiry date of a payment card.",
+      "examples": ["09/28", "12/2027"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "text", "components": "whole", "propagate": false,
+      "labels": ["exp\\.?", "expiry", "expiration(?: date)?", "expires", "valid thru", "good thru"],
+      "classifier_labels": ["credit card expiration"]
+    },
+    {
+      "id": "CARD_CVV", "tag": "CVV", "tier": "A", "name": "Card security code",
+      "definition": "A card verification code (CVV, CVC, CID).",
+      "examples": ["737"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "whole", "propagate": false,
+      "labels": ["cvv2?", "cvc2?", "cid", "security code"],
+      "classifier_labels": ["cvv"]
+    },
+    {
+      "id": "ROUTING_NUMBER", "tag": "ROUTING", "tier": "A", "name": "Bank routing number",
+      "definition": "An ABA routing transit number. It names a bank, not a person, but it is redacted with the account it belongs to.",
+      "examples": ["011000015"],
+      "counter_examples": ["a bare nine-digit number with no routing label"],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["routing(?: no\\.?| number| #)?", "aba(?: no\\.?| number| #)?", "rtn"],
+      "classifier_labels": ["routing number"]
+    },
+    {
+      "id": "DRIVERS_LICENSE", "tag": "DL", "tier": "A", "name": "Driver's license number",
+      "definition": "A driver's license or state ID number, with its state prefix when one is written.",
+      "examples": ["IL D400-7821-9935"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "text", "components": "digits", "propagate": true,
+      "labels": ["driver'?s? licen[sc]e(?: no\\.?| number| #)?", "dl(?: no\\.?| #)?", "state id(?: no\\.?| number)?"],
+      "classifier_labels": ["driver license"]
+    },
+    {
+      "id": "PASSPORT", "tag": "PASSPORT", "tier": "A", "name": "Passport number",
+      "definition": "A passport number.",
+      "examples": ["X12345678"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["passport(?: no\\.?| number| #)?"],
+      "classifier_labels": ["passport number"]
+    },
+    {
+      "id": "VIN", "tag": "VIN", "tier": "A", "name": "Vehicle identification number",
+      "definition": "A 17-character vehicle identification number.",
+      "examples": ["1M8GDM9AXKP042788"],
+      "counter_examples": [],
+      "layers": ["rules"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["vin"],
+      "classifier_labels": []
+    },
+    {
+      "id": "LICENSE_PLATE", "tag": "PLATE", "tier": "A", "name": "License plate",
+      "definition": "A vehicle license plate number.",
+      "examples": ["BQ 48213"],
+      "counter_examples": ["a vehicle make, model or year"],
+      "layers": ["rules"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["plate(?: no\\.?| number| #)?", "license plate", "tag(?: no\\.?| number)"],
+      "classifier_labels": []
+    },
+    {
+      "id": "IP_ADDRESS", "tag": "IP", "tier": "A", "name": "IP address",
+      "definition": "An IPv4 or IPv6 address.",
+      "examples": ["203.0.113.47", "2001:db8::4a2f:1"],
+      "counter_examples": ["a version string such as version 1.2.3.4"],
+      "layers": ["rules", "classifier"], "match": "casefold", "components": "whole", "propagate": true,
+      "labels": ["ip", "ipv[46]", "address"],
+      "classifier_labels": ["ip address"]
+    },
+    {
+      "id": "MAC_ADDRESS", "tag": "MAC", "tier": "A", "name": "Device identifier",
+      "definition": "A MAC address, device serial number or other device identifier.",
+      "examples": ["00:1A:2B:3C:4D:5E"],
+      "counter_examples": [],
+      "layers": ["rules"], "match": "casefold", "components": "whole", "propagate": true,
+      "labels": ["mac(?: address)?", "serial(?: no\\.?| number| #)?", "device id"],
+      "classifier_labels": []
+    },
+    {
+      "id": "URL", "tag": "URL", "tier": "A", "name": "Web address",
+      "definition": "Any URL in the document. Portal and profile links often carry a user name.",
+      "examples": ["https://portal.example-clinic.test/patients/ewhitfield79"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "casefold", "components": "whole", "propagate": true,
+      "labels": ["url", "portal", "website", "link"],
+      "classifier_labels": ["url"]
+    },
+    {
+      "id": "CREDENTIAL", "tag": "CREDENTIAL", "tier": "A", "name": "Credential",
+      "definition": "A user name, password, PIN, API key or security answer.",
+      "examples": ["username ewhitfield79"],
+      "counter_examples": [],
+      "layers": ["rules", "classifier"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["user(?: ?name)?", "login", "password", "passcode", "pin", "api key", "token"],
+      "classifier_labels": ["username", "password"]
+    },
+    {
+      "id": "NPI", "tag": "NPI", "tier": "A", "name": "Provider identifier",
+      "definition": "A National Provider Identifier, DEA number or other clinician registration number. It identifies the clinician named next to it.",
+      "examples": ["1234567893"],
+      "counter_examples": [],
+      "layers": ["rules"], "match": "digits", "components": "digits", "propagate": true,
+      "labels": ["npi", "dea(?: no\\.?| number| #)?", "license(?: no\\.?| number| #)"],
+      "classifier_labels": []
+    },
+    {
+      "id": "OTHER_ID", "tag": "ID", "tier": "A", "name": "Other identifying number",
+      "definition": "The HIPAA catch-all: any other number or code unique to a person or their record, such as a form, claim, case or patient ID.",
+      "examples": ["INTAKE-2026-10-30-0047"],
+      "counter_examples": ["an order number", "a dollar amount", "a page number"],
+      "layers": ["rules"], "match": "text", "components": "digits", "propagate": true,
+      "labels": ["form id", "claim(?: id| no\\.?| number| #)", "case(?: id| no\\.?| number| #)", "patient(?: id| no\\.?| number| #)", "record(?: id| no\\.?| number| #)", "visit(?: id| no\\.?| #)", "encounter(?: id| no\\.?| #)", "employee(?: id| no\\.?| #)", "student(?: id| no\\.?| #)", "customer(?: id| no\\.?| #)", "client(?: id| no\\.?| #)", "id(?: no\\.?| #)?"],
+      "classifier_labels": []
+    },
+    {
+      "id": "CITY", "tag": "CITY", "tier": "B", "name": "City or town",
+      "definition": "A city, town or neighborhood, anywhere in the document, including inside an organization's name.",
+      "examples": ["Evanston", "Los Angeles"],
+      "counter_examples": [],
+      "layers": ["classifier", "llm"], "match": "name", "components": "whole", "propagate": true,
+      "labels": ["city"],
+      "classifier_labels": ["location city"]
+    },
+    {
+      "id": "STATE", "tag": "STATE", "tier": "B", "name": "State or province",
+      "definition": "A US state, territory or province, as a name or a postal code.",
+      "examples": ["IL", "Illinois"],
+      "counter_examples": ["MI meaning myocardial infarction in a medical history (redacted anyway when it is ambiguous)"],
+      "layers": ["rules", "classifier", "llm"], "match": "name", "components": "whole", "propagate": true,
+      "labels": ["state"],
+      "classifier_labels": ["location state"]
+    },
+    {
+      "id": "ZIP", "tag": "ZIP", "tier": "B", "name": "ZIP or postal code",
+      "definition": "A ZIP code or postal code, including ZIP+4.",
+      "examples": ["60201"],
+      "counter_examples": ["a five-digit dollar amount"],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "whole", "propagate": true,
+      "labels": ["zip(?: code)?", "postal code", "postcode"],
+      "classifier_labels": ["location zip"]
+    },
+    {
+      "id": "AGE", "tag": "AGE", "tier": "B", "name": "Age",
+      "definition": "A person's age at any value.",
+      "examples": ["47", "age 12", "72"],
+      "counter_examples": ["a duration such as 'three weeks'"],
+      "layers": ["rules", "classifier"], "match": "digits", "components": "whole", "propagate": false,
+      "labels": ["age", "aged"],
+      "classifier_labels": ["age"]
+    },
+    {
+      "id": "SEX", "tag": "SEX", "tier": "B", "name": "Sex or gender",
+      "definition": "A person's recorded sex or gender identity.",
+      "examples": ["Female"],
+      "counter_examples": ["pronouns, which are kept"],
+      "layers": ["rules", "classifier"], "match": "text", "components": "whole", "propagate": false,
+      "labels": ["sex", "gender"],
+      "classifier_labels": ["gender"]
+    },
+    {
+      "id": "MARITAL_STATUS", "tag": "MARITAL", "tier": "B", "name": "Marital status",
+      "definition": "A person's marital or partnership status.",
+      "examples": ["Married"],
+      "counter_examples": ["a relationship word such as 'husband' or 'spouse', which is kept"],
+      "layers": ["rules", "classifier"], "match": "text", "components": "whole", "propagate": false,
+      "labels": ["marital status"],
+      "classifier_labels": ["marital status"]
+    },
+    {
+      "id": "OCCUPATION", "tag": "OCCUPATION", "tier": "B", "name": "Occupation",
+      "definition": "A person's job title or occupation.",
+      "examples": ["Senior Data Analyst"],
+      "counter_examples": ["a clinician's credential such as MD or DO after their name"],
+      "layers": ["classifier", "llm"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["occupation", "job title", "profession"],
+      "classifier_labels": ["occupation"]
+    },
+    {
+      "id": "ORGANIZATION", "tag": "ORG", "tier": "B", "name": "Organization tied to a person",
+      "definition": "An employer, care provider, pharmacy, school, bank or other named organization in a document about a person.",
+      "examples": ["Lakeshore Analytics Group, LLC", "Northside Example Pharmacy #0412"],
+      "counter_examples": [],
+      "layers": ["classifier", "llm"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["employer", "company", "pharmacy", "bank", "carrier", "school"],
+      "classifier_labels": ["organization", "organization medical facility"]
+    },
+    {
+      "id": "HEALTH_INFO", "tag": "HEALTH", "tier": "H", "name": "Health content",
+      "definition": "Diagnoses, diagnosis codes, medications, allergies, procedures, test results and blood type. Off in strict: HIPAA de-identification removes identifiers and keeps clinical content, and the document is useless without it.",
+      "examples": ["E11.9", "Metformin 500 mg", "Penicillin", "O+"],
+      "counter_examples": [],
+      "layers": ["classifier", "llm"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["diagnos[ie]s", "medications?", "allerg(?:y|ies)", "blood type"],
+      "classifier_labels": ["condition", "drug", "medical code", "blood type", "medical process"]
+    }
+  ],
+  "tier_c": [
+    "Rare combinations of Tier B values (for example a small town, an exact age over 89 and an occupation) that single out a person even with every listed class redacted.",
+    "Free-text events that only one person matches (for example 'the only cardiologist in town who fell off the ferry last June').",
+    "Family structure combined with ages (for example 'two children, ages 12 and 9') once names are gone."
+  ]
+}

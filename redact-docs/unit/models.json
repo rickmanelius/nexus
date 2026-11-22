@@ -1,0 +1,13 @@
+{
+  "about": "Pins the pipeline checks at run time. They must equal the sha256 and size_bytes in nexus.yaml.",
+  "llm": {
+    "id": "llm",
+    "sha256": "3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597",
+    "size_bytes": 2497281120
+  },
+  "classifier": {
+    "id": "classifier",
+    "sha256": "0514c8fd86d0513ce5351a3267f132b57d5bcd8f99a90d43cde1228092881d19",
+    "size_bytes": 196757174
+  }
+}

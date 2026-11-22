@@ -1,0 +1,6 @@
+# Direct dependencies of the redact 0.5 unit. requirements.lock pins these and every
+# transitive package with hashes; regenerate it with tools/lock.sh.
+firecrawl-anydoc==0.2.4
+onnxruntime==1.31.1
+tokenizers==0.23.3
+numpy==2.5.4

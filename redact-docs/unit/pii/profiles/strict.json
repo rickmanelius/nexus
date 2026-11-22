@@ -1,0 +1,10 @@
+{
+  "name": "strict",
+  "about": "The default profile: every Tier A and Tier B class is redacted, health content is kept. Client profiles name strict as their base.",
+  "disable": [],
+  "enable": [],
+  "classes": [],
+  "patterns": [],
+  "deny": [],
+  "allow": []
+}

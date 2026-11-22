@@ -1,0 +1,144 @@
+# redact-docs
+
+A [NexusRun](https://nexusrun.dev) unit that removes personal information from a document on your own machine. You give it a PDF, Word file, spreadsheet, slide deck or text file; it gives back the document as Markdown with every name, date, ID number, address, phone number, account number and similar value replaced by a placeholder, plus a table of what it replaced. The document never leaves your computer.
+
+```text
+Patient Name: Eleanor Marguerite Whitfield   ->   Patient Name: [PERSON_1]
+SSN: 987-65-4320                             ->   SSN: [SSN_1]
+Mobile: 312-555-0187                         ->   Mobile: [PHONE_2]
+```
+
+Labels stay and values go, and a value gets the same placeholder everywhere it appears, so the cleaned document still reads correctly. (All data in these examples is fictitious.)
+
+Version 1.0.0. Published as `ghcr.io/rickmanelius/redact-docs:1.0.0`.
+
+## Quickstart
+
+You need nexus v0.1.0 ([install steps](../README.md#quickstart)), llama.cpp, and Python 3.12 or newer. On a Mac with Apple silicon:
+
+```sh
+brew install llama.cpp python
+nexus pull ghcr.io/rickmanelius/redact-docs:1.0.0
+nexus install --yes redact-docs:1.0.0
+nexus run --no-daemon --no-sandbox redact-docs:1.0.0 -p "[selftest]"
+```
+
+`nexus install` downloads the two models the unit names (2.7 GB) and checks each against its pinned sha256. The selftest run installs the unit's Python packages the first time (about 175 MB, into `~/.cache/nexus-redact/`), then cleans the fictitious intake form bundled in `unit/selftest/` and checks the result against its answer key. It should end with:
+
+```text
+selftest: Tier A 0 of 80 values leaked, Tier B 0 of 14 leaked; passed
+```
+
+Then clean your own file. Give an absolute path after `@`:
+
+```sh
+nexus run --no-daemon --no-sandbox redact-docs:1.0.0 -p "@$PWD/my-document.pdf" > cleaned.md
+```
+
+About the flags:
+
+- `--no-daemon`: if `nexus serve` is running, nexus v0.1.0 would hand the prompt to the daemon as a chat and never run the redaction. Every real report starts with the line `redact-docs 1.0.0 | profile strict | layers rules, classifier, llm | local only`.
+- `--no-sandbox`: macOS has no nexus script sandbox. On Linux, leave the flag out and the unit runs sandboxed.
+
+## What you get
+
+The report is the cleaned document, then a summary table. From the bundled intake form:
+
+```text
+redact-docs 1.0.0 | profile strict | layers rules, classifier, llm | local only
+
+## FICTITIOUS TEST DATA-NOT A REAL PATIENT
+
+# [ORG_1]-New Patient Intake Form
+
+Patient Name: [PERSON_1] Preferred Name: [PERSON_2] Date of Birth: [DATE_1] Age: [AGE_1] Sex: [SEX_1] ...
+
+## PII replaced
+
+| Placeholder | PII class | Tier | Distinct values | Occurrences | Caught by |
+|---|---|---|---|---|---|
+| `[PERSON_n]` | Person name | A | 20 | 30 | rules, classifier |
+| `[SSN_n]` | Social Security number | A | 3 | 3 | rules |
+| `[DATE_n]` | Date linked to a person | A | 17 | 17 | rules |
+...
+```
+
+No original value is printed anywhere: not in the table, not in error messages. If anything fails, the run prints one line naming the stage (for example `redact-docs: error: conversion: document needs OCR ...`) and exits non-zero, without the document's text or its file name.
+
+## How it works
+
+One run goes through these steps in order:
+
+1. **Checks first.** The profile, both models and llama.cpp must be present before the document is read.
+2. **Local conversion.** [anydoc](https://github.com/firecrawl/anydoc) turns the file into Markdown with its native converter only. Hosted OCR is never called, so scanned PDFs that need OCR are refused.
+3. **Rules.** Emails, URLs, IP addresses, phone numbers, dates, valid SSNs, card numbers (Luhn), Medicare numbers and VINs are caught by their format. Routing numbers, member IDs, account numbers and other digit runs are caught when a label sits just before them, even when their checksum fails.
+4. **Classifier.** [GLiNER-PII](https://huggingface.co/knowledgator/gliner-pii-base-v1.0) runs on what the rules left, on onnxruntime, and finds names, addresses, cities and organizations.
+5. **LLM.** Qwen3-4B, through llama.cpp, looks at the capitalized words still visible and marks the ones that name a person, place or organization. It only labels strings taken from the document, so it cannot invent or rewrite text, and the document reaches it on stdin.
+6. **Replace and report.** Every span any layer found is replaced, along with every other occurrence of the same value.
+
+The same document, profile and version give byte-identical output on the same machine.
+
+## What it redacts
+
+The full definition is [docs/pii-definition.md](docs/pii-definition.md), and its machine copy is [unit/pii/taxonomy.json](unit/pii/taxonomy.json). The default profile, `strict`, redacts:
+
+- **Tier A, always:** names (nicknames included), SSNs and tax IDs, every date more specific than a year, phone and fax numbers, emails, street addresses, medical record numbers, health plan and Medicare IDs, account, card and routing numbers, card expiry and security codes, driver's license and passport numbers, VINs and plates, IP and device addresses, URLs, credentials, provider IDs, and any other identifying number.
+- **Tier B, on by default:** city, state, ZIP, age, sex, marital status, occupation, and organizations tied to the person (employer, clinic, pharmacy, bank).
+
+It keeps health content (diagnoses, codes, medications, allergies), because a cleaned medical form is not useful without it. When in doubt it redacts: over-redaction is preferred to a leak.
+
+## Tuning for your documents
+
+A profile is a JSON file in `~/.config/nexus-redact/profiles/<name>.json`, picked per run with a prefix:
+
+```sh
+nexus run --no-daemon --no-sandbox redact-docs:1.0.0 -p "[profile=client-a] @$PWD/claim.pdf"
+```
+
+```json
+{
+  "name": "client-a",
+  "base": "strict",
+  "disable": ["OCCUPATION"],
+  "classes": [{"id": "CLAIM_NUMBER", "tag": "CLAIM", "tier": "A", "name": "Claim number"}],
+  "patterns": [{"class": "CLAIM_NUMBER", "regex": "CLM-\\d{4}-\\d{6}"}],
+  "deny": [{"class": "PERSON", "term": "Jordan Example"}],
+  "allow": ["Example Mutual Health"]
+}
+```
+
+A profile can turn Tier B classes off, turn health content on (`"enable": ["HEALTH_INFO"]`), add your own ID formats, and list terms that must always (`deny`) or never (`allow`) be redacted. Tier A classes cannot be turned off. A profile with an unknown class or a pattern that does not compile stops the run before the document is read. The profile's name is printed in the report's first line, so give profiles neutral names.
+
+Other prompt prefixes: `[selftest]` runs the bundled check, and `[verbose]` adds progress counts (never text). Text without `@` is redacted as given, but prefer a file: text on the command line lands in your shell history.
+
+## Results and limits
+
+On the bundled fictitious intake form (five pages, 133 planted values), 0 of 80 distinct direct identifiers and 0 of 14 context identifiers are left in the output, counting partial leaks such as a surname left beside a placeholder. A run takes about 15 seconds on an Apple M4 Pro. That is one hand-made form, not a benchmark. Check the output on your own documents before you rely on it.
+
+Known limits:
+
+- **macOS has no sandbox.** There, "nothing leaves the machine" rests on the unit's own code: the pipeline switches off Python's network calls, conversion never calls hosted OCR, and llama.cpp gets the text on stdin. After setup the unit also runs with all network denied. On Linux the nexus sandbox limits file access, but the unit declares `network` for its first-run package install, so it does not block egress.
+- **English, born-digital documents.** No OCR for scanned pages.
+- **Combinations.** Each value is judged on its own. A rare mix of harmless details (a small town, an age and a job) can still point to one person.
+- **Tested on macOS with Apple silicon.** Linux on x86_64 is expected to work and is not yet tested.
+
+## Build it yourself
+
+```sh
+redact-docs/build.sh                   # fetches the classifier's tokenizer files (sha256-checked), then nexus build
+nexus install --yes redact-docs:1.0.0
+```
+
+`unit/` is exactly what the published artifact contains, apart from those three tokenizer files.
+
+| Path | What it is |
+|---|---|
+| `unit/nexus.yaml` | The unit's manifest: its entrypoint, its two models by pinned source and sha256, its settings |
+| `unit/tools/` | The pipeline: `redact.sh` (entrypoint), `pipeline.py`, `rules.py`, `classifier.py`, `llm.py` and helpers |
+| `unit/pii/` | The PII taxonomy and the `strict` profile |
+| `unit/prompts/detector.txt` | The LLM's instructions |
+| `unit/requirements.lock` | Every Python package, pinned with its sha256 |
+| `unit/selftest/` | The fictitious intake form and its answer key |
+| `docs/pii-definition.md` | What counts as PII, class by class |
+
+Third-party models and packages, with their licenses: [THIRD_PARTY.md](THIRD_PARTY.md). Changes: [CHANGELOG.md](CHANGELOG.md).

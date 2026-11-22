@@ -1,0 +1,29 @@
+apiVersion: nexusrun.dev/v1
+name: redact-docs
+version: 1.0.0
+description: Local PII redaction. A document is converted on this machine, then rules, a GLiNER-PII classifier and a Qwen3-4B detector find personal data in turn; the output is the cleaned Markdown plus a table of what was replaced.
+license: Apache-2.0
+models:
+  # models[0] is the one nexus v0.1.0 hands a script unit, as $NEXUS_MODEL_PATH.
+  - id: llm
+    source: hf:unsloth/Qwen3-4B-Instruct-2507-GGUF@a06e946bb6b655725eafa393f4a9745d460374c9/Qwen3-4B-Instruct-2507-Q4_K_M.gguf
+    sha256: 3605803b982cb64aead44f6c1b2ae36e3acdb41d8e46c8a94c6533bc4c67e597
+    size_bytes: 2497281120
+    format: gguf
+  # nexus install fetches this too; the script finds it by digest in the same store.
+  - id: classifier
+    source: hf:knowledgator/gliner-pii-base-v1.0@61726e0ad791dcab3e29339bbec3ad42ded65641/onnx/model_quint8.onnx
+    sha256: 0514c8fd86d0513ce5351a3267f132b57d5bcd8f99a90d43cde1228092881d19
+    size_bytes: 196757174
+    format: onnx
+entrypoint:
+  type: script
+  script: ./tools/redact.sh
+config:
+  - name: REDACT_PROFILE   # strict (default) or a profile in ~/.config/nexus-redact/profiles; per run: [profile=name]
+    default: strict
+  - name: REDACT_LLM_GPU   # on (Metal or CUDA when llama.cpp has it) | off (CPU only)
+    default: "on"
+capabilities: [storage, network]   # storage: model store, ~/.cache venv, input files; network: pip on the first run only
+hardware:
+  prefer: [cpu]
