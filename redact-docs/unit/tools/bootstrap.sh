@@ -5,14 +5,16 @@
 # the run directory), keyed by the lock's hash and the Python version, and is
 # built once with pip --require-hashes --only-binary=:all: from requirements.lock.
 # A sealed unit carries its wheels in vendor/wheels and installs with no index.
+# The lock has wheels for Python 3.12 to 3.14 only (onnxruntime 1.31.1 and PyYAML 6.0.3
+# publish none for 3.15), so a newer python3 is skipped rather than left to fail in pip.
 DIR=$(cd "$(dirname "$0")/.." && pwd)
 LOCK="$DIR/requirements.lock"
 SYS=""
 for c in python3.14 python3.13 python3.12 python3; do
   p=$(command -v "$c" 2>/dev/null) || continue
-  if "$p" -c 'import sys; sys.exit(0 if sys.version_info >= (3, 12) else 1)' 2>/dev/null; then SYS=$p; break; fi
+  if "$p" -c 'import sys; sys.exit(0 if (3, 12) <= sys.version_info[:2] <= (3, 14) else 1)' 2>/dev/null; then SYS=$p; break; fi
 done
-[ -n "$SYS" ] || { echo "redact: error: setup: Python 3.12 or newer is required (macOS: brew install python)" >&2; exit 1; }
+[ -n "$SYS" ] || { echo "redact: error: setup: Python 3.12, 3.13 or 3.14 is required (macOS: brew install python@3.14)" >&2; exit 1; }
 REAL_HOME=$("$SYS" -c 'import os, pwd; print(pwd.getpwuid(os.getuid()).pw_dir)')
 KEY=$("$SYS" -c 'import hashlib, sys; print(hashlib.sha256(open(sys.argv[1], "rb").read()).hexdigest()[:12])' "$LOCK")
 VER=$("$SYS" -c 'import sys; print("%d.%d" % sys.version_info[:2])')
