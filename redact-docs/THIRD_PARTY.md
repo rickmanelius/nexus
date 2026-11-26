@@ -19,7 +19,7 @@ The GLiNER inference code in `unit/tools/classifier.py` reimplements the parts o
 |---|---|---|
 | [NexusRun](https://github.com/VerdictLayer/nexusrun) (`nexus`) | Apache-2.0 | Builds, installs and runs the unit |
 | [llama.cpp](https://github.com/ggml-org/llama.cpp) (`llama-completion`) | [MIT](https://github.com/ggml-org/llama.cpp/blob/master/LICENSE) | Runs the LLM layer |
-| Python 3.12 or newer | PSF-2.0 | Runs the pipeline |
+| Python 3.12, 3.13 or 3.14 | PSF-2.0 | Runs the pipeline |
 
 ## Python packages
 

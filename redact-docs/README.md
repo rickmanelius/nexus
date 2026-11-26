@@ -14,10 +14,10 @@ Version 1.0.0. Published as `ghcr.io/rickmanelius/redact-docs:1.0.0`.
 
 ## Quickstart
 
-You need nexus v0.1.0 ([install steps](../README.md#quickstart)), llama.cpp, and Python 3.12 or newer. On a Mac with Apple silicon:
+You need nexus v0.1.0 ([install steps](../README.md#quickstart)), llama.cpp, and Python 3.12, 3.13 or 3.14. Python 3.15 does not work yet: the pinned onnxruntime and PyYAML have no 3.15 wheels, and plain `brew install python` now gives 3.15. On a Mac with Apple silicon and [Homebrew](https://brew.sh):
 
 ```sh
-brew install llama.cpp python
+brew install llama.cpp python@3.14
 nexus pull ghcr.io/rickmanelius/redact-docs:1.0.0
 nexus install --yes redact-docs:1.0.0
 nexus run --no-daemon --no-sandbox redact-docs:1.0.0 -p "[selftest]"
@@ -125,11 +125,11 @@ Known limits:
 ## Build it yourself
 
 ```sh
-redact-docs/build.sh                   # fetches the classifier's tokenizer files (sha256-checked), then nexus build
+redact-docs/build.sh
 nexus install --yes redact-docs:1.0.0
 ```
 
-`unit/` is exactly what the published artifact contains, apart from those three tokenizer files.
+Run these from the repo root. `build.sh` fetches the classifier's tokenizer files, checks their sha256, then runs `nexus build`. `unit/` is exactly what the published artifact contains, apart from those three tokenizer files.
 
 | Path | What it is |
 |---|---|
