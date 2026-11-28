@@ -51,6 +51,12 @@ On its first run the unit installs exactly the packages in [unit/requirements.lo
 | truststore | 0.10.5 | MIT |
 | typing_extensions | 4.16.0 | PSF-2.0 |
 
+## Data
+
+| File | Author | License | Source |
+|---|---|---|---|
+| `unit/pii/bip39-english.txt`, the BIP-39 English word list (2048 words), unchanged; the rules check its sha256 `2f5eed53a4727b4bf8880d8f3f199efc90e58503646d9ff8eff3a2ed3b24dbda` before any document is read | Marek Palatinus, Pavol Rusnak, Aaron Voisine and Sean Bowe (BIP-39 authors) | [MIT](https://github.com/bitcoin/bips/blob/master/bip-0039.mediawiki), as stated in BIP-39 | https://github.com/bitcoin/bips/blob/9f3d3bc6a60db16efbdc71ac8f7ea30217fc0c39/bip-0039/english.txt |
+
 ## Test data
 
 Everything in `unit/selftest/` is fictitious and was written for this unit; see [unit/selftest/README.md](unit/selftest/README.md).

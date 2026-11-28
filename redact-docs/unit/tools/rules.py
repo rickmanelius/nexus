@@ -5,11 +5,13 @@ URLs, IPs, phone numbers with separators, dashed SSNs that pass the SSA rules,
 Luhn-valid card numbers with a card-network prefix, Medicare MBIs, VINs with
 a valid check digit, and dates more specific than a year. Everything else
 (routing, NPI, member IDs, bare digit runs) needs a matching label just
-before it, and is then redacted even when its checksum fails.
+before it, and is then redacted even when its checksum fails. Keys, tokens,
+private keys, seed phrases and password fields are found by credentials.py.
 """
 import ipaddress
 import re
 
+import credentials
 from spans import Span, find_all
 
 LABEL_WINDOW = 64  # characters searched before a value for its label
@@ -50,6 +52,7 @@ SPELLED_DIGIT = (r"(?:zero|oh|one|two|three|four|five|six|seven|eight|nine|ten|e
                  r"fifteen|sixteen|seventeen|eighteen|nineteen|(?:twenty|thirty|forty|fifty|sixty|seventy|eighty|"
                  r"ninety)(?:-(?:one|two|three|four|five|six|seven|eight|nine))?)")
 SPELLED_RUN = re.compile(r"\b" + SPELLED_DIGIT + r"(?:[\s,-]+" + SPELLED_DIGIT + r"){4,}\b", re.I)
+CALL = re.compile(r"[A-Za-z_][\w.]*\(.*\)[;,]?")
 SIGNATURE = re.compile(r"/s/\s*([A-Z][A-Za-z'-]*(?:\s+(?:[A-Z]\.|[A-Z][A-Za-z'-]*)){0,3})")
 
 US_STATES = ("AL AK AZ AR CA CO CT DE DC FL GA HI ID IL IN IA KS KY LA ME MD MA MI MN MS MO MT NE NV NH NJ NM NY "
@@ -85,6 +88,8 @@ LABELED = [
     ("SEX", r"(?:Female|Male|Woman|Man|Non-?binary|Intersex|Transgender|F|M)"),
     ("MARITAL_STATUS", r"(?:Married|Single|Divorced|Widowed|Separated|Partnered|Domestic partner(?:ship)?|Engaged)"),
     ("PHONE", r"\d{10}|\d{3}-?\d{4}"),
+    # Before CREDENTIAL, so a long value after "API key:" or "token" is named a SECRET.
+    ("SECRET", r"0x[0-9a-fA-F]{64}|(?=[\w+/=.~-]*\d)[\w+/=~-][\w+/=.~-]{14,}[\w+/=~-]|[\w+/=~-][\w+/=.~-]{22,}[\w+/=~-]"),
     ("CREDENTIAL", r"(?=\S*[\d@#$%^&*!_])\S{4,}"),
 ]
 LABEL_GAP = (r"(?:\s+(?:to|at|is|was|of|on|in|as|given|verbally|written|ending|number|no\.?|#))*"
@@ -155,6 +160,7 @@ class Rules:
                 self.labels[cid] = re.compile(r"(?:^|(?<=[^\w]))(?:" + "|".join(c["labels"]) + r")" + LABEL_GAP + r"$",
                                               re.I)
         self.labeled = [(cid, re.compile(r"(?<![\w-])(?:" + pat + r")(?![\w-])")) for cid, pat in LABELED]
+        self.secrets = credentials.Detector(cfg)
 
     def has_label(self, text, start, cid):
         rx = self.labels.get(cid)
@@ -178,8 +184,12 @@ class Rules:
             if cid in active and e > s:
                 out.append(Span(s, e, cid, "rules", prio))
 
+        conn = self.secrets.connection_userinfo(text)
         for m in EMAIL.finditer(text):
-            add(m.start(), m.end(), "EMAIL", 5)
+            if not any(s <= m.start() < e for s, e in conn):  # "pass@db.example.com" in postgres://user:pass@...
+                add(m.start(), m.end(), "EMAIL", 5)
+        for s, e, cid, prio in self.secrets.detect(text):
+            add(s, e, cid, prio)
         for m in URL.finditer(text):
             e = m.end()
             while e > m.start() and text[e - 1] in ".,;:!?'\"":
@@ -260,6 +270,7 @@ class Rules:
             return 0 < int(value) < 130
         if cid == "LICENSE_PLATE":
             return bool(re.search(r"\d", value))
-        if cid == "CREDENTIAL":
-            return not value.endswith(":")
+        if cid in ("CREDENTIAL", "SECRET"):
+            # Not a label, a blank form field ("________") or a call in code ("next_token()").
+            return not (value.endswith(":") or credentials.is_placeholder(value) or CALL.fullmatch(value))
         return True

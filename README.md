@@ -8,7 +8,7 @@ Each unit lives in its own folder here, with its full source, so you can read ex
 
 | Unit | Version | What it does | Pull |
 |---|---|---|---|
-| [**redact-docs**](redact-docs/) | 1.0.0 | Removes personal information (names, dates, IDs, addresses, account numbers and more) from a document on your own machine, and returns the cleaned text plus a table of what it replaced | `ghcr.io/rickmanelius/redact-docs:1.0.0` |
+| [**redact-docs**](redact-docs/) | 1.1.0 | Removes personal information (names, dates, IDs, addresses, account numbers and more) and secrets (passwords, API keys, private keys, seed phrases) from a document on your own machine, and returns the cleaned text plus a table of what it replaced | `ghcr.io/rickmanelius/redact-docs:1.1.0` |
 
 `redact-docs` is the first public unit. More will follow in the same layout.
 
@@ -32,9 +32,9 @@ The last line should print `nexus version v0.1.0 (28f8e25)`. A new Mac does not 
 
 ```sh
 brew install llama.cpp python@3.14
-nexus pull ghcr.io/rickmanelius/redact-docs:1.0.0
-nexus install --yes redact-docs:1.0.0
-nexus run --no-daemon --no-sandbox redact-docs:1.0.0 -p "[selftest]"
+nexus pull ghcr.io/rickmanelius/redact-docs:1.1.0
+nexus install --yes redact-docs:1.1.0
+nexus run --no-daemon --no-sandbox redact-docs:1.1.0 -p "[selftest]"
 ```
 
 `brew install` gets llama.cpp, the LLM runtime, and Python 3.14. The unit runs on Python 3.12, 3.13 or 3.14. Plain `brew install python` now gives Python 3.15, which the unit's pinned packages do not support yet. `nexus install` downloads the two models the unit names (2.7 GB, once) and checks each against its sha256.
@@ -42,7 +42,7 @@ nexus run --no-daemon --no-sandbox redact-docs:1.0.0 -p "[selftest]"
 The last command installs the unit's Python packages the first time (about 175 MB), cleans a fictitious intake form bundled with the unit, checks the result against its answer key, and ends with `selftest: ... passed`. Then clean your own file:
 
 ```sh
-nexus run --no-daemon --no-sandbox redact-docs:1.0.0 -p "@$PWD/my-document.pdf" > cleaned.md
+nexus run --no-daemon --no-sandbox redact-docs:1.1.0 -p "@$PWD/my-document.pdf" > cleaned.md
 ```
 
 See [redact-docs/README.md](redact-docs/README.md) for what it redacts, how to tune it, and its limits.
@@ -54,7 +54,7 @@ Every folder here builds the same unit you can pull. For example:
 ```sh
 git clone https://github.com/rickmanelius/nexus && cd nexus
 redact-docs/build.sh
-nexus install --yes redact-docs:1.0.0
+nexus install --yes redact-docs:1.1.0
 ```
 
 `build.sh` fetches the classifier's pinned tokenizer files, checks their sha256, then runs `nexus build`. `publish.sh` is how I build, self-test and push a unit to the registry.

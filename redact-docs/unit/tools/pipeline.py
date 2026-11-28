@@ -25,6 +25,7 @@ TOOLS = os.path.dirname(os.path.abspath(__file__))
 UNIT_DIR = os.path.dirname(TOOLS)
 sys.path.insert(0, TOOLS)
 
+import credentials  # noqa: E402
 import leakcheck  # noqa: E402
 import models  # noqa: E402
 import profiles  # noqa: E402
@@ -209,7 +210,7 @@ class Pipeline:
 
 def safe_reason(e):
     """Exception text only when it cannot carry document text: our own short messages."""
-    own = (llm_mod.LLMError, clf_mod.ClassifierError, models.ModelError)
+    own = (llm_mod.LLMError, clf_mod.ClassifierError, models.ModelError, credentials.SecretsError)
     return str(e) if isinstance(e, own) else "see the layer's setup"
 
 
@@ -220,7 +221,11 @@ def report(cfg, text, assigned, layers):
 
 
 def build(cfg, verbose):
-    """Preflight: every model and runtime exists before any document is read."""
+    """Preflight: every model, runtime and data file exists before any document is read."""
+    try:
+        credentials.seed_words()
+    except credentials.SecretsError as e:
+        raise Stop(3, "setup", str(e)) from None
     pins = models.load_pins(UNIT_DIR)
     try:
         llm_path = models.llm_path(pins)

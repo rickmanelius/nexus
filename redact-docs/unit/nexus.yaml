@@ -1,6 +1,6 @@
 apiVersion: nexusrun.dev/v1
 name: redact-docs
-version: 1.0.0
+version: 1.1.0
 description: Local PII redaction. A document is converted on this machine, then rules, a GLiNER-PII classifier and a Qwen3-4B detector find personal data in turn; the output is the cleaned Markdown plus a table of what was replaced.
 license: Apache-2.0
 models:
