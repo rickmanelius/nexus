@@ -1,5 +1,5 @@
 {
-  "version": "0.5.0",
+  "version": "0.6.0",
   "about": "Machine source of the PII definition. docs/pii-definition.md is the prose version, and the two must list the same class IDs.",
   "tiers": {
     "A": "Direct identifiers. Always redacted; no profile can turn them off.",
@@ -29,7 +29,9 @@
     "surgical", "telephone", "treat", "type", "vehicle", "weight", "witness", "work", "zip", "cvv", "cvc", "visa",
     "mastercard", "amex", "discover", "security", "sister", "brother", "husband", "wife", "son", "daughter",
     "partner", "parent", "provider", "clinic", "hospital", "practice", "office", "fictitious", "test", "data",
-    "redaction", "testing", "only", "new", "intake", "demographics", "release", "of"
+    "redaction", "testing", "only", "new", "intake", "demographics", "release", "of", "password", "passwords",
+    "passphrase", "passcode", "pin", "pwd", "token", "tokens", "secret", "secrets", "api", "credential", "credentials",
+    "username", "seed", "phrase", "mnemonic", "recovery", "wallet"
   ],
   "classes": [
     {
@@ -241,12 +243,40 @@
     },
     {
       "id": "CREDENTIAL", "tag": "CREDENTIAL", "tier": "A", "name": "Credential",
-      "definition": "A user name, password, PIN, API key or security answer.",
-      "examples": ["username ewhitfield79"],
-      "counter_examples": [],
+      "definition": "A user name, password, passphrase, PIN or security answer, and the user:password part of a connection string. After a field label the whole value is taken, letters-only and multi-word values included; after any other label it needs a digit or a symbol.",
+      "examples": ["username ewhitfield79", "Guest Wi-Fi password: sunshine", "Backup passphrase: correct horse battery staple", "postgres://admin:<password>@db.example.com/app"],
+      "counter_examples": ["the word password in a sentence such as 'reset your password at the front desk'", "a blank field: 'Password: ________'"],
       "layers": ["rules", "classifier"], "match": "text", "components": "whole", "propagate": true,
-      "labels": ["user(?: ?name)?", "login", "password", "passcode", "pin", "api key", "token"],
+      "labels": ["user(?: ?name)?", "login", "password", "passcode", "pass ?phrase", "passwd", "pwd", "pin(?: code| number)?",
+                 "api key", "token", "security (?:question )?answer", "secret answer", "memorable (?:word|phrase)",
+                 "wi-?fi key", "network key"],
+      "field_labels": ["password", "passcode", "pass ?phrase", "passwd", "pwd", "(?-i:PIN)(?: code| number)?",
+                       "security (?:question )?answer", "secret answer", "memorable (?:word|phrase)", "wi-?fi key",
+                       "network key"],
       "classifier_labels": ["username", "password"]
+    },
+    {
+      "id": "SECRET", "tag": "SECRET", "tier": "A", "name": "API key, token or private key",
+      "definition": "A value that grants access on its own: an API key, access or bearer token, client or signing secret, session token (JWT), private key block (PEM, OpenSSH, PGP, PuTTY), crypto wallet private key, or disk recovery key. Caught by its published prefix or shape, after a key, token or secret label, as the value of a setting whose name says it holds one (OPENAI_API_KEY=..., \"client_secret\": \"...\"), in an Authorization header, or in a table column headed by one of these labels.",
+      "examples": ["ghp_ and 36 letters and digits (GitHub)", "AKIA and 16 capitals and digits (AWS)", "a whole private key block, from its BEGIN OPENSSH PRIVATE KEY line to its END line", "OPENAI_API_KEY=<value>", "Authorization: Bearer <value>"],
+      "counter_examples": ["a public key or its fingerprint", "a client ID", "a hash or checksum with no key or token label", "a reference to a secret, such as ${API_KEY} or process.env.API_KEY"],
+      "layers": ["rules"], "match": "text", "components": "whole", "propagate": true,
+      "labels": ["api[ _-]?(?:key|secret|token)", "access[ _-]?(?:key|token)(?: id)?", "secret(?: access)?(?: key)?",
+                 "client[ _-]?secret", "auth(?:entication|orization)?[ _-]?(?:key|token)", "bearer",
+                 "(?:refresh|session|personal access|deploy|bot|webhook) token", "token", "private[ _-]?key",
+                 "signing[ _-]?(?:key|secret)", "webhook[ _-]?secret", "recovery key", "license key"],
+      "classifier_labels": []
+    },
+    {
+      "id": "SEED_PHRASE", "tag": "SEED_PHRASE", "tier": "A", "name": "Wallet seed phrase",
+      "definition": "A crypto wallet recovery phrase, which gives whoever reads it control of the wallet: 12 or more words in a row from the BIP-39 English word list, or 3 or more after a seed-phrase label. Numbering, commas, table pipes and line breaks may sit between the words. The checksum is not tested, so a mistyped or partial phrase is still caught.",
+      "examples": ["abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about (a published BIP-39 test vector)", "1. letter 2. advice 3. cage ... 24. bless"],
+      "counter_examples": ["a wallet address", "a Monero, SLIP-39 or non-English phrase (not detected)"],
+      "layers": ["rules"], "match": "casefold", "components": "whole", "propagate": true,
+      "labels": ["seed (?:phrase|words?)", "(?:secret )?recovery (?:phrase|words?|seed)", "backup (?:phrase|words?|seed)",
+                 "mnemonic(?: phrase| code| words?)?", "wallet (?:seed|words?|phrase)",
+                 "(?:12|24|twelve|twenty-four)[ -]word (?:phrase|seed|backup|list)"],
+      "classifier_labels": []
     },
     {
       "id": "NPI", "tag": "NPI", "tier": "A", "name": "Provider identifier",

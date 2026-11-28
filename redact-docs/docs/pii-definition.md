@@ -13,6 +13,7 @@ These are the edge calls this definition makes. Each one is a default, and a cli
 5. **Labels stay, values go.** `SSN: 987-65-4320` becomes `SSN: [SSN_1]`. A value spelled exactly like a label word (a city called Mobile next to a phone number) can slip past the classifier and the LLM; the rules still see it when it has a label of its own.
 6. **Partial values count.** "Card ending in 1111" and "account ending 6789" are redacted, and an output that keeps any name token, a house number with its street, or a run of four or more digits from a value counts as a leak of that value.
 7. **Order numbers, dollar amounts, page numbers and a year on its own are kept.**
+8. **A secret is redacted wherever it sits, code and config included.** API keys, tokens, private keys, passwords and seed phrases are Tier A even in a document that is not about a person, because a leaked key does harm on its own. Redacting one from a copy does not make it safe: a key or seed phrase that was ever in the original should be rotated or moved.
 
 ## Tiers
 
@@ -38,7 +39,7 @@ Tier C, documented and not detected:
 
 ## How the layers use this
 
-- **Rules** redact formats distinctive enough to stand alone (emails, URLs, IPs, phone numbers with separators, valid dashed SSNs, Luhn-valid card numbers, Medicare MBIs, VINs with a valid check digit, dates). Every other number needs one of the class's labels just before it, and is then redacted even when its checksum fails.
+- **Rules** redact formats distinctive enough to stand alone (emails, URLs, IPs, phone numbers with separators, valid dashed SSNs, Luhn-valid card numbers, Medicare MBIs, VINs with a valid check digit, dates, API keys and tokens with a published prefix, private key blocks, seed phrases). Every other number needs one of the class's labels just before it, and is then redacted even when its checksum fails. Secrets also count as the value of a setting whose name says it holds one, the field after a password label, or a table cell under a secret heading; see `CREDENTIAL`, `SECRET` and `SEED_PHRASE`.
 - **The classifier** (GLiNER-PII) is asked for each active class's `classifier labels`.
 - **The LLM** sees what the first two layers left and types each remaining run of capitalized words as one of the classes marked `llm` below, or as not personal. Numbers are left to the rules and the classifier.
 - A span made only of label words (the taxonomy's `form_words`), common words and titles is treated as a label and kept.
@@ -282,11 +283,39 @@ Any URL in the document. Portal and profile links often carry a user name.
 
 Credential. Tier A, placeholder `[CREDENTIAL_n]`, caught by rules, classifier.
 
-A user name, password, PIN, API key or security answer.
+A user name, password, passphrase, PIN or security answer, and the user:password part of a connection string. After a field label the whole value is taken, letters-only and multi-word values included; after any other label it needs a digit or a symbol.
 
-- Examples: `username ewhitfield79`
-- Labels the rules look for: `user(?: ?name)?`, `login`, `password`, `passcode`, `pin`, `api key`, `token`
+- Examples: `username ewhitfield79`; `Guest Wi-Fi password: sunshine`; `Backup passphrase: correct horse battery staple`; `postgres://admin:<password>@db.example.com/app`
+- Not this class: the word password in a sentence such as 'reset your password at the front desk'; a blank field: 'Password: ________'
+- Labels the rules look for: `user(?: ?name)?`, `login`, `password`, `passcode`, `pass ?phrase`, `passwd`, `pwd`, `pin(?: code| number)?`, `api key`, `token`, `security (?:question )?answer`, `secret answer`, `memorable (?:word|phrase)`, `wi-?fi key`, `network key`
+- Field labels (the value after `:`, `=` or a table cell is taken as written): `password`, `passcode`, `pass ?phrase`, `passwd`, `pwd`, `(?-i:PIN)(?: code| number)?` (PIN in capitals, so a `Pin` column of version pins is not read as passwords), `security (?:question )?answer`, `secret answer`, `memorable (?:word|phrase)`, `wi-?fi key`, `network key`; and a bare `Answer:` within 200 characters after a security question
 - Classifier labels: `username`, `password`
+
+### `SECRET`
+
+API key, token or private key. Tier A, placeholder `[SECRET_n]`, caught by rules.
+
+A value that grants access on its own: an API key, access or bearer token, client or signing secret, session token (JWT), private key block (PEM, OpenSSH, PGP, PuTTY), crypto wallet private key, or disk recovery key. Caught by its published prefix or shape, after a key, token or secret label, as the value of a setting whose name says it holds one (OPENAI_API_KEY=..., "client_secret": "..."), in an Authorization header, or in a table column headed by one of these labels.
+
+- Examples: `ghp_` and 36 letters and digits (GitHub); `AKIA` and 16 capitals and digits (AWS); a whole private key block, from its BEGIN OPENSSH PRIVATE KEY line to its END line; `OPENAI_API_KEY=<value>`; `Authorization: Bearer <value>`
+- Not this class: a public key or its fingerprint; a client ID; a hash or checksum with no key or token label; a reference to a secret, such as `${API_KEY}` or `process.env.API_KEY`
+- Labels the rules look for: `api[ _-]?(?:key|secret|token)`, `access[ _-]?(?:key|token)(?: id)?`, `secret(?: access)?(?: key)?`, `client[ _-]?secret`, `auth(?:entication|orization)?[ _-]?(?:key|token)`, `bearer`, `(?:refresh|session|personal access|deploy|bot|webhook) token`, `token`, `private[ _-]?key`, `signing[ _-]?(?:key|secret)`, `webhook[ _-]?secret`, `recovery key`, `license key`
+
+Known formats, redacted with no label: GitHub, GitLab, Slack, Stripe, Anthropic, OpenAI, Google (API key, OAuth secret and access token), AWS access key IDs, Hugging Face, npm, PyPI, SendGrid, Twilio, Shopify, DigitalOcean, Docker Hub, Grafana, Linear, xAI, Groq, Notion, Mailgun and Square tokens, Telegram bot tokens, JWTs, BitLocker recovery keys, BIP-32 extended private keys, and WIF private keys that pass their base58check checksum. After a label the value must be 16 or more characters with a digit, 24 or more without one, or `0x` and 64 hex digits.
+
+A setting counts when its name holds a secret word (`secret`, `token`, `apikey`, `credential`, or `key` with a qualifier such as `api`, `access` or `private`) and no word that marks it as something else (`url`, `id`, `name`, `public`, `type`, `length` and similar). A name in capitals (`JWT_SECRET=...`) is trusted with any value; other names need a value with a digit, or 20 or more characters, so that code (`token = next_token()`), references (`${API_KEY}`) and placeholders (`your-api-key`) are left alone. A bare `Token` or `Bearer` column heading does not count, since design tokens and coins use it too, and a cell that is an environment variable name (`OPENAI_API_KEY`) is a name, not a value.
+
+### `SEED_PHRASE`
+
+Wallet seed phrase. Tier A, placeholder `[SEED_PHRASE_n]`, caught by rules.
+
+A crypto wallet recovery phrase, which gives whoever reads it control of the wallet: 12 or more words in a row from the BIP-39 English word list, or 3 or more after a seed-phrase label. Numbering, commas, table pipes and line breaks may sit between the words. The checksum is not tested, so a mistyped or partial phrase is still caught.
+
+- Examples: `abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon abandon about` (a published BIP-39 test vector); `1. letter 2. advice 3. cage ... 24. bless`
+- Not this class: a wallet address; a Monero, SLIP-39 or non-English phrase (not detected)
+- Labels the rules look for: `seed (?:phrase|words?)`, `(?:secret )?recovery (?:phrase|words?|seed)`, `backup (?:phrase|words?|seed)`, `mnemonic(?: phrase| code| words?)?`, `wallet (?:seed|words?|phrase)`, `(?:12|24|twelve|twenty-four)[ -]word (?:phrase|seed|backup|list)`
+
+Ordinary English holds long runs of BIP-39 words ("you know what they say just make this one more time when you want"), so a run stops at a sentence end, a label, a heading, a table rule, a blank line (unless both lines hold one numbered word, as on a seed card) and any code punctuation, and a run is not a seed when more than half its words are common English. A random phrase has about one common word in nine. A label counts only with `:`, `=` or a line break between it and the words. The word list is checked against its pinned sha256 before any document is read.
 
 ### `NPI`
 
